@@ -53,11 +53,7 @@ CONNECTION_PER_HOST = 15000
 TIMEOUT = 25
 DB_PATH = "bot_data.db"
 
-PROXY_LIST = [
-    "gzsvv1pggl7k:3g9xpulazhkz2c2@65.111.5.6:3129",
-    "y2g26w7t3tv4:p5ouenejkn07fvy@209.50.179.187:3129",
-    "gdllkdvi6mhq:04l2fmxbv72tzkl@65.111.2.10:3129"
-]
+PROXY_LIST = []
 random.shuffle(PROXY_LIST)
 
 # ======================================================
