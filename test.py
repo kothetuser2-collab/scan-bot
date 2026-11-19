@@ -639,26 +639,51 @@ async def get_session_id(session, session_url, previous_session_id=None):
         if 'sessionId=' in url:
             match = re.search(r'[?&]sessionId=([a-zA-Z0-9]+)', url)
             if match:
+                logger.debug("get_session_id: found in input URL")
                 return match.group(1)
-        
-        async with session.get(url, headers=headers, allow_redirects=True) as req:
+
+        async with session.get(url, headers=headers, allow_redirects=True,
+                               timeout=aiohttp.ClientTimeout(total=15)) as req:
             final_url = str(req.url)
+            logger.debug(f"get_session_id: status={req.status}, final_url={final_url[:150]}")
+
             match = re.search(r'[?&]sessionId=([a-zA-Z0-9]+)', final_url)
             if match:
+                logger.debug("get_session_id: found in redirect URL")
                 return match.group(1)
+
             content_type = req.headers.get('content-type', '')
             if 'text/html' in content_type:
                 text = await req.text()
+                logger.debug(f"get_session_id: html length={len(text)}")
+
                 html_match = re.search(r"sessionId['\"]?\s*[:=]\s*['\"]([a-zA-Z0-9]+)['\"]", text)
                 if html_match:
+                    logger.debug("get_session_id: found in HTML script")
                     return html_match.group(1)
+
                 input_match = re.search(r'<input[^>]*name=["\']sessionId["\'][^>]*value=["\']([a-zA-Z0-9]+)["\']', text, re.IGNORECASE)
                 if input_match:
+                    logger.debug("get_session_id: found in HTML input")
                     return input_match.group(1)
+
+            logger.warning(f"get_session_id: sessionId NOT FOUND (status={req.status}, content-type={content_type})")
             return previous_session_id
-    except Exception as e:
-        logger.error(f"get_session_id error: {e}")
-        return previous_session_id
+
+    except asyncio.TimeoutError:
+        logger.error("get_session_id TIMEOUT — portal မတုံ့ပြန်ပါ (15s)")
+    except aiohttp.ServerDisconnectedError:
+        logger.error("get_session_id SERVER DISCONNECTED — portal က ချိတ်ဆက်မှု ဖြတ်တောက်သည်")
+    except aiohttp.ClientConnectorError as e:
+        logger.error(f"get_session_id CONNECTION ERROR — proxy/network စစ်ပါ: {e}")
+    except aiohttp.ClientError as e:
+        logger.error(f"get_session_id CLIENT ERROR — {type(e).__name__}: {e!r}")
+    except UnicodeDecodeError as e:
+        logger.error(f"get_session_id DECODE ERROR — response encoding မှား: {e}")
+    except Exception:
+        logger.exception("get_session_id UNKNOWN ERROR")
+
+    return previous_session_id
 
 # ==================== SCAN, STOP, RESULT, RECHECK, PROXY ====================
 @bot.message_handler(commands=['scan'])
