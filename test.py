@@ -46,8 +46,8 @@ ADMIN_NAME = "Myogyi10384"
 FORWARD_CHANNEL = ""
 
 # 🟢 RAM 500MB အတွက် Level များကို လျှော့ချထားသည် (မဖျက်ပါ)
-MAX_CONCURRENT = 50        # လျှော့ချပြီး (မူလ 1200)
-BATCH_SIZE = 20            # လျှော့ချပြီး (မူလ 800)
+MAX_CONCURRENT = 500        # လျှော့ချပြီး (မူလ 1200)
+BATCH_SIZE = 200            # လျှော့ချပြီး (မူလ 800)
 CONNECTION_LIMIT = 30000    
 CONNECTION_PER_HOST = 15000  
 TIMEOUT = 25
