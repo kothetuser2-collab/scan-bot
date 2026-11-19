@@ -46,8 +46,8 @@ ADMIN_NAME = "Myogyi10384"
 FORWARD_CHANNEL = ""
 
 # 🟢 RAM 500MB အတွက် Level များကို လျှော့ချထားသည် (မဖျက်ပါ)
-MAX_CONCURRENT = 1200       
-BATCH_SIZE = 800           
+MAX_CONCURRENT = 50        # လျှော့ချပြီး (မူလ 1200)
+BATCH_SIZE = 20            # လျှော့ချပြီး (မူလ 800)
 CONNECTION_LIMIT = 30000    
 CONNECTION_PER_HOST = 15000  
 TIMEOUT = 25
@@ -638,6 +638,9 @@ async def get_session_id(session, session_url, previous_session_id=None):
                 logger.debug("get_session_id: found in input URL")
                 return match.group(1)
 
+        # 🔗 စစ်ဆေးနေသော URL ကို Log ထုတ်ပြမယ်
+        logger.info(f"🔗 စစ်ဆေးနေသော URL: {url[:120]}...")
+
         async with session.get(url, headers=headers, allow_redirects=True,
                                timeout=aiohttp.ClientTimeout(total=15)) as req:
             final_url = str(req.url)
@@ -667,15 +670,13 @@ async def get_session_id(session, session_url, previous_session_id=None):
             return previous_session_id
 
     except asyncio.TimeoutError:
-        logger.error("get_session_id TIMEOUT — portal မတုံ့ပြန်ပါ (15s)")
+        logger.error("get_session_id TIMEOUT — Portal က ၁၅ စက္ကန့်အတွင်း အဖြေမပြန်ပါ")
     except aiohttp.ServerDisconnectedError:
-        logger.error("get_session_id SERVER DISCONNECTED — portal က ချိတ်ဆက်မှု ဖြတ်တောက်သည်")
+        logger.error("get_session_id SERVER DISCONNECTED — Portal က ချိတ်ဆက်မှု ဖြတ်တောက်သည်")
     except aiohttp.ClientConnectorError as e:
-        logger.error(f"get_session_id CONNECTION ERROR — proxy/network စစ်ပါ: {e}")
+        logger.error(f"get_session_id CONNECTION ERROR — လိုင်းမကောင်း သို့မဟုတ် Proxy ပြဿနာ: {e}")
     except aiohttp.ClientError as e:
         logger.error(f"get_session_id CLIENT ERROR — {type(e).__name__}: {e!r}")
-    except UnicodeDecodeError as e:
-        logger.error(f"get_session_id DECODE ERROR — response encoding မှား: {e}")
     except Exception:
         logger.exception("get_session_id UNKNOWN ERROR")
 
@@ -1139,8 +1140,15 @@ def _ocr_sync(image_bytes):
     if ocr is None:
         return None
     try:
-        # OpenCV နဲ့ ပုံပြင်ဆင်ခြင်းကို ကျော်ပြီး တိုက်ရိုက် OCR လုပ်မယ်
-        result = ocr.classification(image_bytes)
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            return None
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray, (3, 3), 0)
+        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        _, buffer = cv2.imencode('.png', thresh)
+        result = ocr.classification(buffer.tobytes())
         return result.upper()
     except:
         return None
