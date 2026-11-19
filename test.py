@@ -1139,15 +1139,8 @@ def _ocr_sync(image_bytes):
     if ocr is None:
         return None
     try:
-        nparr = np.frombuffer(image_bytes, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if img is None:
-            return None
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(gray, (3, 3), 0)
-        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        _, buffer = cv2.imencode('.png', thresh)
-        result = ocr.classification(buffer.tobytes())
+        # OpenCV နဲ့ ပုံပြင်ဆင်ခြင်းကို ကျော်ပြီး တိုက်ရိုက် OCR လုပ်မယ်
+        result = ocr.classification(image_bytes)
         return result.upper()
     except:
         return None
